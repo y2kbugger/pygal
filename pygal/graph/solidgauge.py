@@ -29,39 +29,55 @@ from pygal.util import alter, decorate
 class SolidGauge(Graph):
     def gaugify(self, serie, squares, sq_dimensions, current_square):
         serie_node = self.svg.serie(serie)
+
+        max_value = serie.metadata.get(0, {}).get('max_value', 100)
+        min_value = serie.metadata.get(0, {}).get('min_value', 0)
+        assert max_value > min_value
+        span = max_value - min_value
+        print(min_value, max_value, span)
+
         if self.half_pie:
-            start_angle = 3 * pi / 2
+            min_angle = (3 * pi / 2)
+            if min_value != 0:
+                # we are special cased right now, could make it general with maths
+                assert max_value == -min_value, "min_value must be -max_value if not 0"
+                start_angle = 0
+            else:
+                start_angle = min_angle
             center = ((current_square[1] * sq_dimensions[0]) -
                       (sq_dimensions[0] / 2.),
                       (current_square[0] * sq_dimensions[1]) -
                       (sq_dimensions[1] / 4))
             end_angle = pi / 2
         else:
-            start_angle = 0
+            # start_angle = 0 # old method where min_value is always 0
+            raise NotImplementedError("full pie not implemented yet.")
             center = ((current_square[1] * sq_dimensions[0]) -
                       (sq_dimensions[0] / 2.),
                       (current_square[0] * sq_dimensions[1]) -
                       (sq_dimensions[1] / 2.))
             end_angle = 2 * pi
 
-        max_value = serie.metadata.get(0, {}).get('max_value', 100)
         radius = min([sq_dimensions[0] / 2, sq_dimensions[1] / 2]) * .9
         small_radius = radius * serie.inner_radius
 
         self.svg.gauge_background(
-            serie_node, start_angle, center, radius, small_radius, end_angle,
-            self.half_pie, self._serie_format(serie, max_value)
+            serie_node, min_angle, center, radius, small_radius, end_angle,
+            self.half_pie, self._serie_format(serie, span)
         )
 
         sum_ = 0
         for i, value in enumerate(serie.values):
             if value is None:
                 continue
-            ratio = min(value, max_value) / max_value
+
+            # dont let plot escape the bounds
+            value = max(min_value, value)
+            value = min(max_value, value)
+            ratio = value / span
+            angle = 2 * pi * ratio
             if self.half_pie:
-                angle = 2 * pi * ratio / 2
-            else:
-                angle = 2 * pi * ratio
+                angle = angle / 2
 
             val = self._format(serie, i)
             metadata = serie.metadata.get(i)

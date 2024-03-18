@@ -388,25 +388,24 @@ class Svg(object):
         if angle == 2 * pi:
             angle = nearly_2pi
 
-        if angle > 0:
-            to = [
-                coord_abs_project(center, radius, start_angle),
-                coord_abs_project(center, radius, start_angle + angle),
-                coord_abs_project(center, small_radius, start_angle + angle),
-                coord_abs_project(center, small_radius, start_angle)
-            ]
+        to = [
+            coord_abs_project(center, radius, start_angle),
+            coord_abs_project(center, radius, start_angle + angle),
+            coord_abs_project(center, small_radius, start_angle + angle),
+            coord_abs_project(center, small_radius, start_angle)
+        ]
+        if angle < 0:
+            to = [to[1], to[0], to[3], to[2]]
 
-            self.node(
-                node,
-                'path',
-                d='M%s A%s 0 %d 1 %s L%s A%s 0 %d 0 %s z' % (
-                    to[0], coord_dual(radius), int(angle > pi), to[1], to[2],
-                    coord_dual(small_radius), int(angle > pi), to[3]
-                ),
-                class_='slice reactive tooltip-trigger'
-            )
-        else:
-            return
+        self.node(
+            node,
+            'path',
+            d='M%s A%s 0 %d 1 %s L%s A%s 0 %d 0 %s z' % (
+                to[0], coord_dual(radius), int(angle > pi), to[1],
+                to[2], coord_dual(small_radius), int(angle > pi), to[3]
+            ),
+            class_='slice reactive tooltip-trigger'
+        )
 
         x, y = coord_diff(
             center,
